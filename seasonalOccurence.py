@@ -8,14 +8,16 @@ import pysat
 import matplotlib.pyplot as plt
 import numpy as np
 import pathlib
+import datetime
+import argparse
+import multiprocessing
 
-dataDir = pathlib.Path('datasets')
 # Data Directory
+dataDir = pathlib.Path('datasets')
 pysat.utils.set_data_dir(str(dataDir))
 
 # set the directory to save plots to
-results_dir = '.'
-
+results_dir = 'results/'
 
 # define function to remove flagged values
 def filter_vefi(inst):
@@ -23,15 +25,7 @@ def filter_vefi(inst):
     inst.data = inst.data.iloc[idx]
     return
 
-
-def processRange(start, stop):
-    """Calculate the probability info for a range of time. This assumes that
-    data is available in dataDir.
-
-    This function is intended to eventually go into separate programs, so it's
-    as self-contained as possible.
-    """
-
+def getVefiInstrument():
     # select vefi dc magnetometer data, use longitude to determine where
     # there are changes in the orbit (local time info not in file)
     orbit_info = {'index': 'longitude', 'kind': 'longitude'}
@@ -39,13 +33,17 @@ def processRange(start, stop):
                             clean_level=None, orbit_info=orbit_info)
 
     vefi.custom.add(filter_vefi, 'modify')
+    return vefi
 
-    # if there is no vefi dc magnetometer data on your system, then run command
-    # below where start and stop are pandas datetimes (from above)
-    # pysat will automatically register the addition of this data at the end of
-    # download
-    if not (dataDir / 'cnofs').exists():
-        vefi.download(start, stop)
+def probsRange(start, stop):
+    """Calculate the probability info for a range of time. This assumes that
+    data is available in dataDir.
+
+    This function is intended to eventually go into separate programs, so it's
+    as self-contained as possible.
+    """
+
+    vefi = getVefiInstrument()
 
     # leave bounds unassigned to cover the whole dataset (comment out lines below)
     vefi.bounds = (start, stop)
@@ -62,7 +60,7 @@ def processRange(start, stop):
 
 
 def aggregateResults(results):
-    """Perform an average of a list of results from processRange.
+    """Perform an average of a list of results from probsRange.
     Returns a dictionary with matching bin_x and bin_y, the sum of count, prob,
     and the number of probabilities in the sum per cell.
     
@@ -107,18 +105,52 @@ def plotProb(ans, name='ssnl_occurrence_by_orbit_dem'):
     plt.savefig(os.path.join(results_dir, name))
     plt.close()
 
+def processDay(day):
+    print("Processing " + date.strftime("%y-%m-%d"))
+    probs = probsRange(day, day)
+    plotProb(probs, day.strftime("%y-%m-%d"))
 
-# Do entire range in one shot
-fullAns = processRange(pysat.datetime(2010, 5, 9), pysat.datetime(2010, 5, 15))
+def faasLambda(event, context):
+    """An AWS lambda compatible function.
+    Assumes that the appropriate days are available in dataDir.
+    There are two modes: 'baseline' and 'cffs'
+        'baseline' will return results in an AWS-native way (XXX need to decide what this is)
+        'cffs' will simply write the results into the results/ directory under
+        the assumption that a shared filesystem is mounted there.
 
-# Do range in partitions and aggregate the results. This doesn't seem to be
-# perfect, but the results are similar.
-ndays = 7
-perDay = []
-for i in range(ndays):
-    perDay.append(processRange(pysat.datetime(2010, 5, 9 + i), pysat.datetime(2010, 5, 9 + i)))
+    Argument is a dictionary with the following fields:
+        'nday' - the number of days to process
+        'mode' - either 'baseline' or 'cffs'
+    """
+    dates = [ startDate + datetime.timedelta(days=day) for day in range(event['nday']) ]
+    for date in dates:
+        processDay(date)
 
-agg = aggregateResults(perDay)
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description='Generate plots of a statistical analysis of the cnofs vefi satelite dataset')
+    parser.add_argument('-p', '--parallel', type=int, default=1, help='degree of parallelism to use')
+    parser.add_argument('-n', '--nday', type=int, default=1, help='Number of days to process (starting from 5-9-2010)')
 
-plotProb(fullAns, name='full')
-plotProb(agg, name='agg')
+    args = parser.parse_args()
+
+    startDate = pysat.datetime(2010, 5, 9)
+
+    # Download the dataset for the date range this is not parallelized and is
+    # expected to be cached under normal circumstances
+    vefiDir = dataDir / 'cnofs' / 'vefi' / 'dc_b'
+    vefi = getVefiInstrument()
+    for day in range(args.nday):
+        date = startDate + datetime.timedelta(days=day)
+        print("Downloading data for " + date.strftime("%y-%m-%d"))
+        fname = 'cnofs_vefi_bfield_1sec_' + date.strftime("%Y%m%d") + "_v05.cdf"
+        if not (vefiDir / fname).exists():
+            vefi.download(date, date)
+
+    dates = [ startDate + datetime.timedelta(days=day) for day in range(args.nday) ]
+    if args.parallel == 1:
+        # Generate graphs for each day
+        for date in dates:
+            processDay(date)
+    else:
+        pool = multiprocessing.Pool(args.parallel)
+        pool.map(processDay, dates)
