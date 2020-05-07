@@ -10,14 +10,16 @@ import numpy as np
 import pathlib
 import datetime
 import argparse
-import multiprocessing
+
+#import multiprocessing
+import lambdamultiprocessing.lambdamultiprocessing as multiprocessing
 
 # Data Directory
-dataDir = pathlib.Path('datasets')
+dataDir = pathlib.Path('/tmp/cffs/datasets')
 pysat.utils.set_data_dir(str(dataDir))
 
 # set the directory to save plots to
-results_dir = 'results/'
+results_dir = '/tmp/cffs/results/'
 
 # define function to remove flagged values
 def filter_vefi(inst):
@@ -139,12 +141,15 @@ if __name__ == "__main__":
     # expected to be cached under normal circumstances
     vefiDir = dataDir / 'cnofs' / 'vefi' / 'dc_b'
     vefi = getVefiInstrument()
-    for day in range(args.nday):
+    def download(day):
         date = startDate + datetime.timedelta(days=day)
         print("Downloading data for " + date.strftime("%y-%m-%d"))
         fname = 'cnofs_vefi_bfield_1sec_' + date.strftime("%Y%m%d") + "_v05.cdf"
         if not (vefiDir / fname).exists():
             vefi.download(date, date)
+
+    pool = multiprocessing.Pool(args.parallel)
+    pool.map(download, range(args.nday))
 
     dates = [ startDate + datetime.timedelta(days=day) for day in range(args.nday) ]
     if args.parallel == 1:
@@ -152,5 +157,4 @@ if __name__ == "__main__":
         for date in dates:
             processDay(date)
     else:
-        pool = multiprocessing.Pool(args.parallel)
         pool.map(processDay, dates)
