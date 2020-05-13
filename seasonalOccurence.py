@@ -4,22 +4,39 @@ the occurrent probability of an event occurring.
 """
 
 import os
-import pysat
 import matplotlib.pyplot as plt
 import numpy as np
 import pathlib
 import datetime
 import argparse
 
-#import multiprocessing
-import lambdamultiprocessing.lambdamultiprocessing as multiprocessing
+# For non-lambda runs (e.g. manual runs in docker or locally)
+# import multiprocessing as mp
+
+# For automatic runs in lambda
+# import lambdamultiprocessing.lambdamultiprocessing as mp
+
+if os.path.exists('/tmp/cffs'):
+    # in docker
+    rootDir = pathlib.Path('/tmp/cffs')
+else:
+    # on host
+    rootDir = pathlib.Path('..').resolve()
+
+# This is due to a limitation of pysat that insists on putting files in your
+# home directory which is not always writeable (e.g. on lambda)
+os.environ['HOME'] = str(rootDir)
+import pysat
 
 # Data Directory
-dataDir = pathlib.Path('/tmp/cffs/datasets')
+dataDir = rootDir / 'datasets'
+if not dataDir.exists():
+    dataDir.mkdir(mode=0o771)
+
 pysat.utils.set_data_dir(str(dataDir))
 
 # set the directory to save plots to
-results_dir = '/tmp/cffs/results/'
+resultsDir = rootDir / 'results'
 
 # define function to remove flagged values
 def filter_vefi(inst):
@@ -104,11 +121,15 @@ def plotProb(ans, name='ssnl_occurrence_by_orbit_dem'):
     plt.colorbar(im, ax=axarr[1], label='Counts')
 
     f.tight_layout()
-    plt.savefig(os.path.join(results_dir, name))
+    
+    if not resultsDir.exists():
+        resultsDir.mkdir(mode=0o771)
+
+    plt.savefig(resultsDir / name)
     plt.close()
 
 def processDay(day):
-    print("Processing " + date.strftime("%y-%m-%d"))
+    print("Processing " + day.strftime("%y-%m-%d"))
     probs = probsRange(day, day)
     plotProb(probs, day.strftime("%y-%m-%d"))
 
@@ -132,8 +153,20 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate plots of a statistical analysis of the cnofs vefi satelite dataset')
     parser.add_argument('-p', '--parallel', type=int, default=1, help='degree of parallelism to use')
     parser.add_argument('-n', '--nday', type=int, default=1, help='Number of days to process (starting from 5-9-2010)')
+    parser.add_argument('-l', '--lambda', dest='useLambda', action='store_true', default=False, help='Use lambda to run the application instead of local processes')
 
     args = parser.parse_args()
+
+    if args.useLambda:
+        print("Running with Lambda")
+
+        if 'AWS_DEFAULT_REGION' not in os.environ:
+            os.environ['AWS_DEFAULT_REGION'] = 'none'
+
+        import lambdamultiprocessing.lambdamultiprocessing as mp
+    else:
+        print("Running with local processes")
+        import multiprocessing as mp
 
     startDate = pysat.datetime(2010, 5, 9)
 
@@ -148,7 +181,7 @@ if __name__ == "__main__":
         if not (vefiDir / fname).exists():
             vefi.download(date, date)
 
-    pool = multiprocessing.Pool(args.parallel)
+    pool = mp.Pool(args.parallel)
     pool.map(download, range(args.nday))
 
     dates = [ startDate + datetime.timedelta(days=day) for day in range(args.nday) ]

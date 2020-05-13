@@ -1,5 +1,13 @@
 # Run in a Docker container
 
+First, create the manager container. We will run all the commands to control
+lambda from here. You can also run the manager from your own machine (at your
+own risk). The rest of this document assumes that you are in the manager
+container.
+
+This document assumes that you use ../ as the main working directory for this
+project. Feel free to place this extra data somewhere else.
+
 ```
 docker network create -d bridge pysatnet
 
@@ -7,26 +15,41 @@ docker run -it --rm \
   --network=pysatnet \
   -v $(pwd)/..:/tmp/cffs \
   lambci/lambda:build-python3.7 bash
+```
 
+Now we can install all the dependencies in the docker container:
+```
 virtualenv -p python3 /tmp/cffs/env
 source /tmp/cffs/env/bin/activate
 
 pip3 install numpy
-pip3 install pysat matplotlib
+pip3 install pysat matplotlib cloudpickle boto3
+```
 
+Finally, we can run a manual local test to make sure everything works:
+```
 cd /tmp/cffs/pystatServerless
 mkdir -p results
 python3 seasonalOccurence.py -n 10 -p 2
 ```
 
 # Getting it to work with a Lambda Docker image
+To run using AWS lambda, we use the AWS-provided lambda docker image. This
+image is able to emulate the AWS lambda service and can be used to test the API
+locally.
 
 ## Start up the lambci environment
+On your host, run the following commands to create and launch the lambda container.
 
+The first step is to ensure that the lambda container has access to the
+cloudpickle package (needed to exchange code/arguments with the driver
+program).
 ```
-pip3 install cloudpickle
 cp -a ../env/lib/python3.7/site-packages/cloudpickle lambda
+```
 
+We can now launch the container:
+```
 docker run --rm  \
   --network=pysatnet \
   --name=lambda01 \
@@ -38,6 +61,8 @@ docker run --rm  \
   handler.lambda_handler
 ```
 
+Finally, we can run the application using our lambda container instead of local
+processes. Back on your manager container
 You can use the CLI to invoke a Lambda function for testing
 ```
 export AWS_DEFAULT_REGION=none
