@@ -10,28 +10,34 @@ project. Feel free to place this extra data somewhere else.
 
 ```
 docker network create -d bridge pysatnet
-
-docker run -it --rm \
-  --network=pysatnet \
-  -v $(pwd)/..:/tmp/cffs \
-  lambci/lambda:build-python3.7 bash
 ```
 
-Now we can install all the dependencies in the docker container:
-```
-virtualenv -p python3 /tmp/cffs/env
-source /tmp/cffs/env/bin/activate
+We can now launch the manager container:
 
-pip3 install numpy
-pip3 install pysat matplotlib cloudpickle boto3
+```
+./launchManager.sh
+```
+
+It has '..' mounted to '/tmp/cffs' for convenience. On a new clone you should
+run '/tmp/cffs/pysatServerless/managerInit.sh' to create a virtual env for the
+manager to use, along with any other files needed to run the example. You can
+also delete the cffs/dockerSandbox directory and re-run managerInit.sh to clean
+any cached state.
+
+```
+cd /tmp/cffs/pysatServerless
+./managerInit.sh
+source /tmp/cffs/dockerSandbox/sourceme.sh
 ```
 
 Finally, we can run a manual local test to make sure everything works:
+
 ```
 cd /tmp/cffs/pystatServerless
-mkdir -p results
-python3 seasonalOccurence.py -n 10 -p 2
+python3 seasonalOccurence.py -n 4 -p 2
 ```
+
+This ran in your manager container and didn't use lambda at all.
 
 # Getting it to work with a Lambda Docker image
 To run using AWS lambda, we use the AWS-provided lambda docker image. This
@@ -45,30 +51,24 @@ The first step is to ensure that the lambda container has access to the
 cloudpickle package (needed to exchange code/arguments with the driver
 program).
 ```
-cp -a ../env/lib/python3.7/site-packages/cloudpickle lambda
+cp -a ../dockerSandbox/env/lib/python3.7/site-packages/cloudpickle lambda
 ```
 
-We can now launch the container:
+We can now launch the container using the 'launchWorker.sh' script:
+
 ```
-docker run --rm  \
-  --network=pysatnet \
-  --name=lambda01 \
-  -e DOCKER_LAMBDA_STAY_OPEN=1 \
-  -p 9001:9001 \
-  -v $(pwd)/lambda:/var/task:ro,delegated \
-  -v $(pwd)/..:/tmp/cffs \
-  lambci/lambda:python3.7 \
-  handler.lambda_handler
+./launchWorker.sh
 ```
 
 Finally, we can run the application using our lambda container instead of local
-processes. Back on your manager container
-You can use the CLI to invoke a Lambda function for testing
+processes. Back on your manager container, run seasonalOccurence.py with the '--lambda' option:
+
 ```
-export AWS_DEFAULT_REGION=none
-aws lambda invoke --endpoint http://lambda01:9001 --no-sign-request \
-  --function-name myfunction --payload '{}' output.json
+python3 seasonalOccurence.py -n 4 -p 2 --lambda
 ```
+
+This time seasonalOccurence.py used lambdamultiprocessing instead of the
+standard multiprocessing to run the function in lambda.
 
 # Getting it to work with CFFS
 

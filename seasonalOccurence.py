@@ -9,19 +9,17 @@ import numpy as np
 import pathlib
 import datetime
 import argparse
-
-# For non-lambda runs (e.g. manual runs in docker or locally)
-# import multiprocessing as mp
-
-# For automatic runs in lambda
-# import lambdamultiprocessing.lambdamultiprocessing as mp
+import subprocess as sp
 
 if os.path.exists('/tmp/cffs'):
     # in docker
-    rootDir = pathlib.Path('/tmp/cffs')
+    rootDir = pathlib.Path('/tmp/cffs/dockerSandbox/')
+    inDocker = True
 else:
     # on host
-    rootDir = pathlib.Path('..').resolve()
+    rootDir = (pathlib.Path('..') / 'hostSandbox').resolve()
+    rootDir.mkdir(mode=0o771, exist_ok=True)
+    inDocker = False
 
 # This is due to a limitation of pysat that insists on putting files in your
 # home directory which is not always writeable (e.g. on lambda)
@@ -129,7 +127,6 @@ def plotProb(ans, name='ssnl_occurrence_by_orbit_dem'):
     plt.close()
 
 def processDay(day):
-    print("Processing " + day.strftime("%y-%m-%d"))
     probs = probsRange(day, day)
     plotProb(probs, day.strftime("%y-%m-%d"))
 

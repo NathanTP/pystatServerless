@@ -3,8 +3,10 @@ import cloudpickle
 import os
 import sys
 
-sys.path.append("/tmp/cffs/env/lib/python3.7/site-packages")
-os.environ["HOME"] = "/tmp/cffs"
+rootDir = "/tmp/cffs/dockerSandbox"
+sys.path.append(rootDir + "/env/lib/python3.7/site-packages")
+os.environ["LD_LIBRARY_PATH"] = rootDir + "/lib/:" + os.environ["LD_LIBRARY_PATH"]
+os.environ["HOME"] = rootDir 
 
 def lambda_handler(event, context):
     f = cloudpickle.loads(base64.b64decode(event['Function'].encode('utf-8')))

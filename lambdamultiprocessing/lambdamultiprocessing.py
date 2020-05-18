@@ -18,6 +18,7 @@ class Pool:
 
         results = []
         for arg in iterable:
+            print("Launching lambda for: ", arg)
             payload = {
                 'Function': base64.b64encode(cloudpickle.dumps(func)).decode('utf-8'),
                 'Arguments': base64.b64encode(cloudpickle.dumps([arg])).decode('utf-8')
