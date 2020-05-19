@@ -6,6 +6,7 @@ if [ ! -d $SANDBOX ]; then
     echo "Sandbox needs to be created on host with 777 permissions"
 fi
 cd $SANDBOX
+export HOME=$SANDBOX
 
 if [ ! -d $SANDBOX/env ]; then
     virtualenv -p python3 ./env

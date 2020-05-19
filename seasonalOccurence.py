@@ -179,7 +179,13 @@ if __name__ == "__main__":
             vefi.download(date, date)
 
     pool = mp.Pool(args.parallel)
-    pool.map(download, range(args.nday))
+
+    # XXX This currently doesn't work on lambda
+    # pool.map(download, range(args.nday))
+
+    # Serial download on manager
+    for day in range(args.nday):
+        download(day)
 
     dates = [ startDate + datetime.timedelta(days=day) for day in range(args.nday) ]
     if args.parallel == 1:

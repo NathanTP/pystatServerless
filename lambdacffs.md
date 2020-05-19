@@ -8,9 +8,17 @@ container.
 This document assumes that you use ../ as the main working directory for this
 project. Feel free to place this extra data somewhere else.
 
+The hostInit.sh script will handle initializing everything:
 ```
-docker network create -d bridge pysatnet
+./hostInit.sh
 ```
+
+This command created a network for docker to use between the manager and
+lambda. It also initialized the manager container, in particular it created the
+../dockerSandbox directory and setup a python environment that can be reused
+between invocations (more on that later). Finally, it pulled a few dependencies
+from the manager container into the lambda (python packages and shared
+libraries).
 
 We can now launch the manager container:
 
@@ -18,15 +26,12 @@ We can now launch the manager container:
 ./launchManager.sh
 ```
 
-It has '..' mounted to '/tmp/cffs' for convenience. On a new clone you should
-run '/tmp/cffs/pysatServerless/managerInit.sh' to create a virtual env for the
-manager to use, along with any other files needed to run the example. You can
-also delete the cffs/dockerSandbox directory and re-run managerInit.sh to clean
-any cached state.
+It has '..' mounted to '/tmp/cffs' for convenience. Whenever you start the
+manager container, you need to get it ready by sourcing
+dockerSandbox/sourceme.sh, this sets up your cached python virtual environment
+and moves your home directory to dockerSandbox.
 
 ```
-cd /tmp/cffs/pysatServerless
-./managerInit.sh
 source /tmp/cffs/dockerSandbox/sourceme.sh
 ```
 
@@ -45,23 +50,15 @@ image is able to emulate the AWS lambda service and can be used to test the API
 locally.
 
 ## Start up the lambci environment
-On your host, run the following commands to create and launch the lambda container.
-
-The first step is to ensure that the lambda container has access to the
-cloudpickle package (needed to exchange code/arguments with the driver
-program).
-```
-cp -a ../dockerSandbox/env/lib/python3.7/site-packages/cloudpickle lambda
-```
-
 We can now launch the container using the 'launchWorker.sh' script:
 
 ```
 ./launchWorker.sh
 ```
 
-Finally, we can run the application using our lambda container instead of local
-processes. Back on your manager container, run seasonalOccurence.py with the '--lambda' option:
+We can now run the application using our lambda container instead of local
+processes. Back on your manager container, run seasonalOccurence.py with the
+'--lambda' option:
 
 ```
 python3 seasonalOccurence.py -n 4 -p 2 --lambda
