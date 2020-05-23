@@ -1,6 +1,13 @@
 #!/bin/bash
+# Usage: ./managerInit.sh [path/to/sandbox]
+#   sandbox defaults to /tmp/cffs/dockerSandbox and must already exist
 
-SANDBOX=/tmp/cffs/dockerSandbox
+if [ $# == 1 ]; then
+    SANDBOX=$1
+else
+    SANDBOX=/tmp/cffs/dockerSandbox
+fi
+
 if [ ! -d $SANDBOX ]; then
     echo "Sandbox directory $SANDBOX not found"
     echo "Sandbox needs to be created on host with 777 permissions"

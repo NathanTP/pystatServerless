@@ -13,15 +13,14 @@ class Pool:
     def __init__(self, processes):
         _ = processes
 
-    def map(self, func, iterable, chunksize=None):
+    def starmap(self, func, iterable, chunksize=None):
         client = boto3.client('lambda', endpoint_url='http://lambda01:9001', config=Config(signature_version=UNSIGNED))
 
         results = []
         for arg in iterable:
-            print("Launching lambda for: ", arg)
             payload = {
                 'Function': base64.b64encode(cloudpickle.dumps(func)).decode('utf-8'),
-                'Arguments': base64.b64encode(cloudpickle.dumps([arg])).decode('utf-8')
+                'Arguments': base64.b64encode(cloudpickle.dumps(arg)).decode('utf-8')
             }
 
             resp = client.invoke(
@@ -40,3 +39,5 @@ class Pool:
 
         return results
 
+    def map(self, func, iterable, chunksize=None):
+        return self.starmap(func, [ (a) for a in iterable ], chunksize)

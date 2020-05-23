@@ -1,5 +1,10 @@
 #!/bin/bash
 
+if [ -z "$CFFS_SRC" ]; then
+    echo "Please source cffsProj/env.sh or set the $CFFS_SRC variable"
+    exit 1
+fi
+
 if [ ! -d ../dockerSandbox ]; then
     mkdir ../dockerSandbox
     chmod -R 777 ../dockerSandbox
