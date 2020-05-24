@@ -5,7 +5,7 @@
 if [ $# == 1 ]; then
     SANDBOX=$1
 else
-    SANDBOX=/tmp/cffs/dockerSandbox
+    SANDBOX=/tmp/cffs/sandboxCache
 fi
 
 if [ ! -d $SANDBOX ]; then
@@ -21,8 +21,8 @@ if [ ! -d $SANDBOX/env ]; then
     pip3 install numpy
     pip3 install pysat matplotlib cloudpickle boto3
 
-    mkdir -p lib
-    cp ./env/lib/python3.7/site-packages/numpy.libs/* ./lib/
+    # mkdir -p lib
+    # cp ./env/lib/python3.7/site-packages/numpy.libs/* ./lib/
 fi
 
 mkdir -p datasets

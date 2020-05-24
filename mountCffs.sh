@@ -1,21 +1,24 @@
 #!/bin/bash
+set -e
 
 USAGE="Usage: ./mountCffs.sh MOUNT_POINT"
 # Mount cffs to the first argument and drop into a shell with access to that
 # mount point.
 
-if [[ $# != 1 ]]; then
+if [[ $# == 0 ]]; then
+    SANDBOX=/tmp/cffs/cffsSandbox
+elif [[ $# != 1 ]]; then
     echo $USAGE
+else
+    SANDBOX=$1
+    case "$SANDBOX" in
+    */)
+        echo "mount point has trailing slash, this probably won't do what you meant. Removing trailing slash:"
+        SANDBOX=${SANDBOX%/}
+        echo "New mount point: $SANDBOX"
+        ;;
+    esac
 fi
-
-SANDBOX=$1
-case "$SANDBOX" in
-*/)
-    echo "mount point has trailing slash, this probably won't do what you meant. Removing trailing slash:"
-    SANDBOX=${SANDBOX%/}
-    echo "New mount point: $SANDBOX"
-    ;;
-esac
 
 export LD_LIBRARY_PATH=/tmp/cffs/cffs/build:$LD_LIBRARY_PATH
 export CFFS_MOUNT_POINT=$SANDBOX

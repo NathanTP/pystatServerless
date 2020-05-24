@@ -34,7 +34,7 @@ if [[ $# > 0 ]] && [[ $1 == "--cffs" ]]; then
     export LD_LIBRARY_PATH=/tmp/cffs/cffs/build:$LD_LIBRARY_PATH
     export CFFS_MOUNT_POINT=$SANDBOX
     # export CFFS_VERBOSE=1
-    export INTERCEPT_LOG=/tmp/cffsLog
+    export INTERCEPT_LOG=/tmp/cffsLog-
     # export INTERCEPT_ALL_OBJS=1
 
     USE_CFFS=true
@@ -63,8 +63,8 @@ if $USE_CFFS; then
     # script for the stuff that needs cffs. It's called funny because I don't
     # want to mark it executable and tempt users to call it directly which
     # will cause problems.
-    LD_PRELOAD=cffs.so.3 ./_runExperimentHelper.sh
-
+    LD_PRELOAD=cffs.so.3
 else
-    python3 seasonalOccurence.py -s $SANDBOX $TESTARGS
+    LD_PRELOAD=''
 fi
+./_runExperimentHelper.sh
