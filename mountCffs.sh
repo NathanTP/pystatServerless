@@ -22,7 +22,7 @@ export CFFS_MOUNT_POINT=$SANDBOX
 
 # Set to enable debugging
 # export CFFS_VERBOSE=1
-export INTERCEPT_LOG=/tmp/cffsLog
+export INTERCEPT_LOG=/tmp/cffsLog-
 
 if ! (ps -l | grep -q cffssvc); then
 	/tmp/cffs/cffs/build/cffssvc -mode txn -server txnserver:10000 &

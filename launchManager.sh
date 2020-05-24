@@ -20,4 +20,4 @@ docker run -it --rm \
   --network=pysatnet \
   -v $(pwd)/..:/tmp/cffs \
   --user sbx_user1051 \
-  lambci/lambda:build-python3.7 $CMD
+  jsssmith/cffs:build $CMD

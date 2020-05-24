@@ -35,6 +35,7 @@ if [[ $# > 0 ]] && [[ $1 == "--cffs" ]]; then
     export CFFS_MOUNT_POINT=$SANDBOX
     # export CFFS_VERBOSE=1
     export INTERCEPT_LOG=/tmp/cffsLog
+    # export INTERCEPT_ALL_OBJS=1
 
     USE_CFFS=true
     if ! (ps -l | grep -q cffssvc); then
