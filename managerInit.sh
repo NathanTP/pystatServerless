@@ -11,12 +11,14 @@ fi
 if [ ! -d $SANDBOX ]; then
     echo "Sandbox directory $SANDBOX not found"
     echo "Sandbox needs to be created on host with 777 permissions"
+    exit 1
 fi
+
 cd $SANDBOX
 export HOME=$SANDBOX
 
 if [ ! -d $SANDBOX/env ]; then
-    virtualenv -p python3 ./env
+    virtualenv --always-copy -p python3 ./env
     source env/bin/activate
     pip3 install numpy
     pip3 install pysat matplotlib cloudpickle boto3

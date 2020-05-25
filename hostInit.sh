@@ -4,14 +4,13 @@ set -e
 # Set up the host after a fresh clone, this should be idempotent
 
 # Docker networking
-docker network ls | grep -q "pysatnet"
-if [ $? == 1 ]; then
+if ! docker network ls | grep -q "pysatnet"; then
     echo "Creating docker network 'pysatnet'"
     docker network create -d bridge pysatnet > /dev/null
 fi
 
 # Setup the manager docker image
-if [ ! -d ../dockerSandbox/env ]; then
+if [ ! -d ../sandboxCache/env ]; then
     echo "Initializing the manager docker container"
     ./launchManager.sh /tmp/cffs/pysatServerless/managerInit.sh
 fi

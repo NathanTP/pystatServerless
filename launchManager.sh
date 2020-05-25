@@ -18,6 +18,7 @@ fi
 
 docker run -it --rm \
   --network=pysatnet \
+  --name=manaager \
   -v $(pwd)/..:/tmp/cffs \
   --user sbx_user1051 \
   jsssmith/cffs:build $CMD
