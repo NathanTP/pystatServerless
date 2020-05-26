@@ -2,7 +2,6 @@
 set -e
 
 # Set up the host after a fresh clone, this should be idempotent
-SANDBOX_CACHE=sandboxCache
 
 # Docker networking
 if ! docker network ls | grep -q "pysatnet"; then
@@ -11,7 +10,7 @@ if ! docker network ls | grep -q "pysatnet"; then
 fi
 
 # Setup the manager docker image
-if [ ! -d ../$SANDBOX_CACHE/env ]; then
+if [ ! -d $CFFS_SANDBOX_CACHE/env ]; then
     echo "Initializing the manager docker container"
     ./launchManager.sh $CFFS_PROJ_MNT/pysatServerless/managerInit.sh
 fi
@@ -19,7 +18,7 @@ fi
 # Get the cloudpickle package into our lambda
 if [ ! -d "lambda/cloudpickle" ]; then
     echo "Copying cloudpickle package from manager to lambda containers"
-    cp -r ../$SANDBOX_CACHE/env/lib/python3.6/site-packages/cloudpickle lambda/
+    cp -r $CFFS_SANDBOX_CACHE/env/lib/python3.6/site-packages/cloudpickle lambda/
 fi
 
 # Lambda needs some shared libraries from the manager image

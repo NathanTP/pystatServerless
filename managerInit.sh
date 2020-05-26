@@ -5,7 +5,7 @@
 if [ $# == 1 ]; then
     SANDBOX=$1
 else
-    SANDBOX=$CFFS_PROJ_MNT/sandboxCache
+    SANDBOX=$CFFS_SANDBOX_CACHE
 fi
 
 if [ ! -d $SANDBOX ]; then

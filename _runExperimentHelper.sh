@@ -5,12 +5,12 @@
 echo "Copying files to cffs: $SANDBOX"
 rm -rf $SANDBOX/*
 rm -rf $SANDBOX/.*
-cp -r $SANDBOX_CACHE/* $SANDBOX/
+cp -r $CFFS_SANDBOX_CACHE/* $SANDBOX/
 
 # sed -i doesn't seem to work on cffs (can't create temp file) so we use shell
 # redirects instead.
 # sed -Ei "s:$SANDBOX_CACHE:$SANDBOX:g" $SANDBOX/env/bin/activate
-sed -E "s:$SANDBOX_CACHE:$SANDBOX:g" $SANDBOX/env/bin/activate > /tmp/envActivate
+sed -E "s:$CFFS_SANDBOX_CACHE:$SANDBOX:g" $SANDBOX/env/bin/activate > /tmp/envActivate
 cp /tmp/envActivate $SANDBOX/env/bin/activate
 
 source $SANDBOX/env/bin/activate

@@ -22,30 +22,24 @@ set -a
 # Set up the local container, note that this script should be idempotent and
 # fast to rerun
 
-# To avoid re-initializing from scratch everytime, we keep a cached copy in the real FS to later copy over into the cffs sandbox.
-SANDBOX_CACHE=$CFFS_PROJ_MNT/sandboxCache
-
-./managerInit.sh $SANDBOX_CACHE
-
 if [[ $# > 0 ]] && [[ $1 == "--cffs" ]]; then
     echo "Using CFFS for experiment"
-    SANDBOX=$CFFS_PROJ_MNT/cffsSandbox
+    SANDBOX=$CFFS_MOUNT_POINT
 
-    export LD_LIBRARY_PATH=$CFFS_PROJ_MNT/cffs/build:$LD_LIBRARY_PATH
-    export CFFS_MOUNT_POINT=$SANDBOX
+    export LD_LIBRARY_PATH=$CFFS_SRC/build:$LD_LIBRARY_PATH
     # export CFFS_VERBOSE=1
     export INTERCEPT_LOG=/tmp/cffsLog-
     # export INTERCEPT_ALL_OBJS=1
 
     USE_CFFS=true
     if ! (ps -l | grep -q cffssvc); then
-        $CFFS_PROJ_MNT//cffs/build/cffssvc -mode txn -server txnserver:10000 &
+        $CFFS_SRC/build/cffssvc -mode txn -server txnserver:10000 &
     fi
 
     shift
 else
     # default
-    SANDBOX=$CFFS_PROJ_MNT/dockerSandbox
+    SANDBOX=$CFFS_BASE_SANDBOX
     LD_PRELOAD=""
     USE_CFFS=false
 fi
@@ -55,7 +49,6 @@ if [[ $# > 0 ]]; then
 else
     TESTARGS="-n 2 -p 2"
 fi
-
 
 if $USE_CFFS; then
     # LD_PRELOAD requires a new process, but I don't want to prefix every

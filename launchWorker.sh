@@ -7,13 +7,13 @@ if [ $# == 1 ]; then
     if [ $1 == "--cffs" ]; then
         CFFSVOL=""
         USE_CFFS=1
-        SANDBOX=/tmp/cffs/cffsSandbox
+        SANDBOX=$CFFS_MOUNT_POINT
     else
         echo "Only supported argument is 'cffs'"
     fi
 else
-    CFFSVOL="-v $(pwd)/..:/tmp/cffs"
-    SANDBOX=/tmp/cffs/dockerSandbox
+    CFFSVOL="-v $(pwd)/..:$CFFS_PROJ_MNT"
+    SANDBOX=$CFFS_BASE_SANDBOX
 fi
 
 docker run --rm  \
