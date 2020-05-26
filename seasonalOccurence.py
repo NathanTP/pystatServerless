@@ -4,20 +4,38 @@ the occurrent probability of an event occurring.
 """
 
 import os
-import pysat
 import matplotlib.pyplot as plt
 import numpy as np
 import pathlib
 import datetime
 import argparse
-import multiprocessing
+import subprocess as sp
 
-# Data Directory
-dataDir = pathlib.Path('datasets')
-pysat.utils.set_data_dir(str(dataDir))
+class expCtx:
+    def __init__(self, rootDir):
+        if not rootDir.exists():
+            raise ValueError("Root directory does not exist")
 
-# set the directory to save plots to
-results_dir = 'results/'
+        self.rootDir = rootDir 
+
+        # This is due to a limitation of pysat that insists on putting files in your
+        # home directory which is not always writeable (e.g. on lambda)
+        os.environ['HOME'] = str(self.rootDir)
+        global pysat
+        pysat = __import__("pysat")
+
+        # Data Directory
+        self.dataDir = self.rootDir / 'datasets'
+        if not self.dataDir.exists():
+            self.dataDir.mkdir(mode=0o771)
+
+        pysat.utils.set_data_dir(str(self.dataDir))
+
+        # set the directory to save plots to
+        self.resultsDir = self.rootDir / 'results'
+        if not self.resultsDir.exists():
+            self.resultsDir.mkdir(mode=0o771)
+
 
 # define function to remove flagged values
 def filter_vefi(inst):
@@ -82,7 +100,7 @@ def aggregateResults(results):
     return agg
 
 
-def plotProb(ans, name='ssnl_occurrence_by_orbit_dem'):
+def plotProb(ctx, ans, name='ssnl_occurrence_by_orbit_dem'):
     # plot occurrence probability
     f, axarr = plt.subplots(2, 1, sharex=True, sharey=True)
     masked = np.ma.array(ans['prob'], mask=np.isnan(ans['prob']))
@@ -102,55 +120,66 @@ def plotProb(ans, name='ssnl_occurrence_by_orbit_dem'):
     plt.colorbar(im, ax=axarr[1], label='Counts')
 
     f.tight_layout()
-    plt.savefig(os.path.join(results_dir, name))
+    
+    plt.savefig(ctx.resultsDir / name)
     plt.close()
 
-def processDay(day):
-    print("Processing " + date.strftime("%y-%m-%d"))
+def processDay(ctx, day):
     probs = probsRange(day, day)
-    plotProb(probs, day.strftime("%y-%m-%d"))
-
-def faasLambda(event, context):
-    """An AWS lambda compatible function.
-    Assumes that the appropriate days are available in dataDir.
-    There are two modes: 'baseline' and 'cffs'
-        'baseline' will return results in an AWS-native way (XXX need to decide what this is)
-        'cffs' will simply write the results into the results/ directory under
-        the assumption that a shared filesystem is mounted there.
-
-    Argument is a dictionary with the following fields:
-        'nday' - the number of days to process
-        'mode' - either 'baseline' or 'cffs'
-    """
-    dates = [ startDate + datetime.timedelta(days=day) for day in range(event['nday']) ]
-    for date in dates:
-        processDay(date)
+    plotProb(ctx, probs, day.strftime("%y-%m-%d"))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description='Generate plots of a statistical analysis of the cnofs vefi satelite dataset')
     parser.add_argument('-p', '--parallel', type=int, default=1, help='degree of parallelism to use')
     parser.add_argument('-n', '--nday', type=int, default=1, help='Number of days to process (starting from 5-9-2010)')
+    parser.add_argument('-l', '--lambda', dest='useLambda', action='store_true', default=False, help='Use lambda to run the application instead of local processes')
+    parser.add_argument('-s', '--sandbox', default=pathlib.Path(os.environ["CFFS_PROJ_MNT"]) / "dockerSandbox", type=pathlib.Path, help="Where to look for dependencies and write outputs. This is the only directory written by the program.")
 
     args = parser.parse_args()
+
+    if args.useLambda:
+        print("Running with Lambda")
+
+        if 'AWS_DEFAULT_REGION' not in os.environ:
+            os.environ['AWS_DEFAULT_REGION'] = 'none'
+
+        import lambdamultiprocessing.lambdamultiprocessing as mp
+    else:
+        print("Running with local processes")
+        import multiprocessing as mp
+
+    if not args.sandbox.exists():
+        print("Sandbox directory does not exist: ",args.sandbox)
+        exit(1)
+
+    ctx = expCtx(rootDir=args.sandbox)
 
     startDate = pysat.datetime(2010, 5, 9)
 
     # Download the dataset for the date range this is not parallelized and is
     # expected to be cached under normal circumstances
-    vefiDir = dataDir / 'cnofs' / 'vefi' / 'dc_b'
+    vefiDir = ctx.dataDir / 'cnofs' / 'vefi' / 'dc_b'
     vefi = getVefiInstrument()
-    for day in range(args.nday):
+    def download(day):
         date = startDate + datetime.timedelta(days=day)
         print("Downloading data for " + date.strftime("%y-%m-%d"))
         fname = 'cnofs_vefi_bfield_1sec_' + date.strftime("%Y%m%d") + "_v05.cdf"
         if not (vefiDir / fname).exists():
             vefi.download(date, date)
 
+    pool = mp.Pool(args.parallel)
+
+    # XXX This currently doesn't work on lambda
+    # pool.map(download, range(args.nday))
+
+    # Serial download on manager
+    for day in range(args.nday):
+        download(day)
+
     dates = [ startDate + datetime.timedelta(days=day) for day in range(args.nday) ]
     if args.parallel == 1:
         # Generate graphs for each day
         for date in dates:
-            processDay(date)
+            processDay(ctx, date)
     else:
-        pool = multiprocessing.Pool(args.parallel)
-        pool.map(processDay, dates)
+        pool.starmap(processDay, [ (ctx, day) for day in dates ])
