@@ -13,7 +13,7 @@ fi
 # Setup the manager docker image
 if [ ! -d ../$SANDBOX_CACHE/env ]; then
     echo "Initializing the manager docker container"
-    ./launchManager.sh /tmp/cffs/pysatServerless/managerInit.sh
+    ./launchManager.sh $CFFS_PROJ_MNT/pysatServerless/managerInit.sh
 fi
 
 # Get the cloudpickle package into our lambda

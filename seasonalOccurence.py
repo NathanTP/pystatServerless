@@ -133,7 +133,7 @@ if __name__ == "__main__":
     parser.add_argument('-p', '--parallel', type=int, default=1, help='degree of parallelism to use')
     parser.add_argument('-n', '--nday', type=int, default=1, help='Number of days to process (starting from 5-9-2010)')
     parser.add_argument('-l', '--lambda', dest='useLambda', action='store_true', default=False, help='Use lambda to run the application instead of local processes')
-    parser.add_argument('-s', '--sandbox', default="/tmp/cffs/dockerSandbox", type=pathlib.Path, help="Where to look for dependencies and write outputs. This is the only directory written by the program.")
+    parser.add_argument('-s', '--sandbox', default=pathlib.Path(os.environ["CFFS_PROJ_MNT"]) / "dockerSandbox", type=pathlib.Path, help="Where to look for dependencies and write outputs. This is the only directory written by the program.")
 
     args = parser.parse_args()
 

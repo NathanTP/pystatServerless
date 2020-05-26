@@ -1,11 +1,11 @@
 #!/bin/bash
 # Usage: ./managerInit.sh [path/to/sandbox]
-#   sandbox defaults to /tmp/cffs/dockerSandbox and must already exist
+#   sandbox defaults to $CFFS_PROJ_MNT/dockerSandbox and must already exist
 
 if [ $# == 1 ]; then
     SANDBOX=$1
 else
-    SANDBOX=/tmp/cffs/sandboxCache
+    SANDBOX=$CFFS_PROJ_MNT/sandboxCache
 fi
 
 if [ ! -d $SANDBOX ]; then
@@ -23,6 +23,7 @@ if [ ! -d $SANDBOX/env ]; then
     pip3 install numpy
     pip3 install pysat matplotlib cloudpickle boto3
 
+    # XXX This was needed once, why not anymore?
     # mkdir -p lib
     # cp ./env/lib/python3.7/site-packages/numpy.libs/* ./lib/
 fi

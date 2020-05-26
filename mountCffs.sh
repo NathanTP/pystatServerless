@@ -6,7 +6,7 @@ USAGE="Usage: ./mountCffs.sh MOUNT_POINT"
 # mount point.
 
 if [[ $# == 0 ]]; then
-    SANDBOX=/tmp/cffs/cffsSandbox
+    SANDBOX=$CFFS_PROJ_MNT/cffsSandbox
 elif [[ $# != 1 ]]; then
     echo $USAGE
 else
@@ -20,7 +20,7 @@ else
     esac
 fi
 
-export LD_LIBRARY_PATH=/tmp/cffs/cffs/build:$LD_LIBRARY_PATH
+export LD_LIBRARY_PATH=$CFFS_PROJ_MNT/cffs/build:$LD_LIBRARY_PATH
 export CFFS_MOUNT_POINT=$SANDBOX
 
 # Set to enable debugging
@@ -28,7 +28,7 @@ export CFFS_MOUNT_POINT=$SANDBOX
 export INTERCEPT_LOG=/tmp/cffsLog-
 
 if ! (ps -l | grep -q cffssvc); then
-	/tmp/cffs/cffs/build/cffssvc -mode txn -server txnserver:10000 &
+	$CFFS_PROJ_MNT/cffs/build/cffssvc -mode txn -server txnserver:10000 &
 fi
 
 LD_PRELOAD=cffs.so.3 bash

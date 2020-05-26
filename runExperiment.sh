@@ -9,9 +9,9 @@ set -a
 # Runs a default seasonalOcurence.py experiment.
 # Usage: ./runExperiment.sh [--cffs] [ARGS]
 #
-# By default will use /tmp/cffs/dockerSandbox that is assumed to be a real
+# By default will use $CFFS_PROJ_MNT/dockerSandbox that is assumed to be a real
 # (non-cffs) directory. You can optionally pass --cffs which will use
-# /tmp/cffs/cffsSandbox which should be an empty directory. Running with cffs
+# $CFFS_PROJ_MNT/cffs/cffsSandbox which should be an empty directory. Running with cffs
 # requires a working cffs txn server running. The local cffs daemon (cffssvc)
 # will be launched and not killed after execution (to allow manual inspection
 # after).
@@ -23,15 +23,15 @@ set -a
 # fast to rerun
 
 # To avoid re-initializing from scratch everytime, we keep a cached copy in the real FS to later copy over into the cffs sandbox.
-SANDBOX_CACHE=/tmp/cffs/sandboxCache
+SANDBOX_CACHE=$CFFS_PROJ_MNT/sandboxCache
 
 ./managerInit.sh $SANDBOX_CACHE
 
 if [[ $# > 0 ]] && [[ $1 == "--cffs" ]]; then
     echo "Using CFFS for experiment"
-    SANDBOX=/tmp/cffs/cffsSandbox
+    SANDBOX=$CFFS_PROJ_MNT/cffsSandbox
 
-    export LD_LIBRARY_PATH=/tmp/cffs/cffs/build:$LD_LIBRARY_PATH
+    export LD_LIBRARY_PATH=$CFFS_PROJ_MNT/cffs/build:$LD_LIBRARY_PATH
     export CFFS_MOUNT_POINT=$SANDBOX
     # export CFFS_VERBOSE=1
     export INTERCEPT_LOG=/tmp/cffsLog-
@@ -39,13 +39,13 @@ if [[ $# > 0 ]] && [[ $1 == "--cffs" ]]; then
 
     USE_CFFS=true
     if ! (ps -l | grep -q cffssvc); then
-        /tmp/cffs/cffs/build/cffssvc -mode txn -server txnserver:10000 &
+        $CFFS_PROJ_MNT//cffs/build/cffssvc -mode txn -server txnserver:10000 &
     fi
 
     shift
 else
     # default
-    SANDBOX=/tmp/cffs/dockerSandbox
+    SANDBOX=$CFFS_PROJ_MNT/dockerSandbox
     LD_PRELOAD=""
     USE_CFFS=false
 fi
