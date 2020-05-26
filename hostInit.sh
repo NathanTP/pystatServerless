@@ -2,6 +2,7 @@
 set -e
 
 # Set up the host after a fresh clone, this should be idempotent
+SANDBOX_CACHE=sandboxCache
 
 # Docker networking
 if ! docker network ls | grep -q "pysatnet"; then
@@ -10,7 +11,7 @@ if ! docker network ls | grep -q "pysatnet"; then
 fi
 
 # Setup the manager docker image
-if [ ! -d ../sandboxCache/env ]; then
+if [ ! -d ../$SANDBOX_CACHE/env ]; then
     echo "Initializing the manager docker container"
     ./launchManager.sh /tmp/cffs/pysatServerless/managerInit.sh
 fi
@@ -18,7 +19,7 @@ fi
 # Get the cloudpickle package into our lambda
 if [ ! -d "lambda/cloudpickle" ]; then
     echo "Copying cloudpickle package from manager to lambda containers"
-    cp -r ../dockerSandbox/env/lib/python3.7/site-packages/cloudpickle lambda/
+    cp -r ../$SANDBOX_CACHE/env/lib/python3.6/site-packages/cloudpickle lambda/
 fi
 
 # Lambda needs some shared libraries from the manager image
@@ -26,7 +27,7 @@ if [ ! -f lambda/lib/libgfortran.so.3 ] || [ ! -f lambda/lib/libquadmath.so.0 ];
     echo "Getting needed shared libraries from manager container"
     mkdir -p lambda/lib
 
-    id=$(docker create lambci/lambda:build-python3.7 bash)
+    id=$(docker create jsssmith/cffs:build bash)
     docker cp -L $id:/usr/lib64/libgfortran.so.3 lambda/lib/
     docker cp -L $id:/usr/lib64/libquadmath.so.0 lambda/lib/
     docker rm -v $id > /dev/null

@@ -5,11 +5,6 @@ if [ -z "$CFFS_SRC" ]; then
     exit 1
 fi
 
-if [ ! -d ../dockerSandbox ]; then
-    mkdir ../dockerSandbox
-    chmod -R 777 ../dockerSandbox
-fi
-
 if [ $# == 1 ]; then
     CMD=$1
 else
@@ -22,4 +17,3 @@ docker run -it --rm \
   -v $(pwd)/..:/tmp/cffs \
   --user sbx_user1051 \
   jsssmith/cffs:build $CMD
-

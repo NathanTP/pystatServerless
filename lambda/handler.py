@@ -11,12 +11,22 @@ import contextlib
 # Increases verbosity and degree of error checking
 debug = True
 
-cffsMnt = pathlib.Path("/tmp/cffs/cffsSandbox")
-rootDir = cffsMnt
-sys.path.append(str(rootDir / "env/lib/python3.7/site-packages"))
+if os.environ.get('USE_CFFS', "") != "":
+    useCffs = True
+else:
+    useCffs = False
+
+# This must match the manager because pysat saves certain paths
+rootDir = pathlib.Path(os.environ['SANDBOX'])
+sys.path.append(str(rootDir / "env/lib/python3.6/site-packages"))
+sys.path.append(str(rootDir / "env/lib64/python3.6/site-packages"))
 os.environ["HOME"] = str(rootDir)
 cffsEnv = os.environ.copy()
 
+if debug:
+    print("Using sandbox: ", rootDir)
+    print("cffs mode?: ",useCffs)
+    print("sys path: ",sys.path)
 
 def mountCffs(mntDir):
     """Launch the CFFS management daemon and configure it to mount at mntDir.
@@ -25,7 +35,7 @@ def mountCffs(mntDir):
 
     cffsTools = pathlib.Path("/var/task/cffsTools")
     cffsEnv['LD_LIBRARY_PATH'] = str(cffsTools) + ":" + cffsEnv['LD_LIBRARY_PATH']
-    cffsEnv["CFFS_MOUNT_POINT"] = str(rootDir)
+    cffsEnv["CFFS_MOUNT_POINT"] = str(mntDir)
 
     if debug:
         cffsEnv["CFFS_VERBOSE"] = "1"
@@ -43,7 +53,7 @@ def setenv(newEnv):
         os.environ = orig
 
 
-def cffsRun(f, **fargs):
+def cffsRun(f, *fargs):
     """Run the callable "f" with args "fargs", with CFFS available to it.
     Returns the return value of f. Note that f is run using multiprocessing and
     shares all the same restrictions regarding communication."""
@@ -61,32 +71,33 @@ def cffsRun(f, **fargs):
     return r
 
 
-# If the rootDir already exists, we're running in native filesystem mode (no
-# CFFS). Otherwise we're running in CFFS mode and need to set up our
-# filesystem before proceeding.
-if not rootDir.exists():
-    if debug:
-        print("Project root dir does not exist: ", rootDir)
-        print("Assuming CFFS is being used")
+if useCffs:
+    if rootDir.exists():
+        raise RuntimeError("sandbox directory ("+str(rootDir)+") already exists in cffs mode. Lambda expects to create this directory before mounting cffs.")
 
-    cffsMnt.mkdir(mode=0o771)
-    cffsProcess = mountCffs(cffsMnt)
-    usingCffs = True
-else:
-    usingCffs = False
+    rootDir.mkdir(mode=0o771, parents=True)
+    if debug:
+        print("Mounting cffs to",rootDir)
+    cffsProcess = mountCffs(rootDir)
+
+
+def runFuncEvent(event):
+    f = cloudpickle.loads(base64.b64decode(event['Function'].encode('utf-8')))
+    args = cloudpickle.loads(base64.b64decode(event['Arguments'].encode('utf-8')))
+    return f(*args)
+
 
 def lambda_handler(event, context):
     if debug:
-        if usingCffs:
+        if useCffs:
             if cffsProcess.poll():
                 raise RuntimeError("cffssvc exited unexpectedly, lost cffs mount")
 
-    f = cloudpickle.loads(base64.b64decode(event['Function'].encode('utf-8')))
-    args = cloudpickle.loads(base64.b64decode(event['Arguments'].encode('utf-8')))
-    if usingCffs:
-        res = cffsRun(f, args)
+    # cffsRun(testCffs)
+    if useCffs:
+        res = cffsRun(runFuncEvent, event)
     else:
-        res = f(*args)
+        res = runFuncEvent(event) 
 
     return {
         'Result': base64.b64encode(cloudpickle.dumps(res)).decode('utf-8')

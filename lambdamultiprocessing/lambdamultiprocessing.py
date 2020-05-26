@@ -40,4 +40,4 @@ class Pool:
         return results
 
     def map(self, func, iterable, chunksize=None):
-        return self.starmap(func, [ (a) for a in iterable ], chunksize)
+        return self.starmap(func, [ [a] for a in iterable ], chunksize)
