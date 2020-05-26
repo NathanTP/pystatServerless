@@ -18,7 +18,7 @@ fi
 # Get the cloudpickle package into our lambda
 if [ ! -d "lambda/cloudpickle" ]; then
     echo "Copying cloudpickle package from manager to lambda containers"
-    cp -r $CFFS_SANDBOX_CACHE/env/lib/python3.6/site-packages/cloudpickle lambda/
+    cp -r $CFFS_SANDBOX_CACHE/env/lib/python3.7/site-packages/cloudpickle lambda/
 fi
 
 # Lambda needs some shared libraries from the manager image

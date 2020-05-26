@@ -18,6 +18,6 @@ source $SANDBOX/env/bin/activate
 # cffs doesn't support symlinks, but python relies on relative paths to locate
 # certain parts of PYTHONPATH, so we have to use the global python, but
 # explicitly set PYTHONPATH to compensate.
-PYTHONPATH=$SANDBOX/env/lib/python3.6/site-packages:$SANDBOX/env/lib64/python3.6/site-packages HOME=$SANDBOX python3 seasonalOccurence.py -s $SANDBOX $TESTARGS
+PYTHONPATH=$SANDBOX/env/lib/python3.7/site-packages:$SANDBOX/env/lib64/python3.7/site-packages HOME=$SANDBOX python3 seasonalOccurence.py -s $SANDBOX $TESTARGS
 
 echo "done"

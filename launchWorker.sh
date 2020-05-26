@@ -23,5 +23,5 @@ docker run --rm  \
   -p 9001:9001 \
   -v $(pwd)/lambda:/var/task:ro,delegated \
   $CFFSVOL \
-  lambci/lambda:python3.6 \
+  lambci/lambda:python3.7 \
   handler.lambda_handler

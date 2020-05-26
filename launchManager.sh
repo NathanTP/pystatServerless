@@ -18,4 +18,4 @@ docker run -it --rm \
   -v $(pwd)/..:$CFFS_PROJ_MNT \
   --user sbx_user1051 \
   --entrypoint="$CFFS_PROJ_MNT/pysatServerless/managerEntry.sh" \
-  jsssmith/cffs:build $CMD
+  lambci/lambda:build-python3.7 $CMD
