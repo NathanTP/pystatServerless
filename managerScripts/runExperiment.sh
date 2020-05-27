@@ -60,4 +60,4 @@ if $USE_CFFS; then
 else
     LD_PRELOAD=''
 fi
-./_runExperimentHelper.sh
+$CFFS_MANAGER_SCRIPTS/_runExperimentHelper.sh

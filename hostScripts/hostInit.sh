@@ -3,6 +3,10 @@ set -e
 
 # Set up the host after a fresh clone, this should be idempotent
 
+# Setup sandboxes used to store experiment state
+mkdir --mode 777 -p $CFFS_BASE_SANDBOX
+mkdir --mode 777 -p $CFFS_SANDBOX_CACHE
+
 # Docker networking
 if ! docker network ls | grep -q "pysatnet"; then
     echo "Creating docker network 'pysatnet'"
@@ -12,7 +16,7 @@ fi
 # Setup the manager docker image
 if [ ! -d $CFFS_SANDBOX_CACHE/env ]; then
     echo "Initializing the manager docker container"
-    ./launchManager.sh $CFFS_PROJ_MNT/pysatServerless/managerInit.sh
+    $CFFS_HOST_SCRIPTS/launchManager.sh $CFFS_PROJ_MNT/pysatServerless/managerInit.sh
 fi
 
 # Get the cloudpickle package into our lambda
@@ -34,11 +38,11 @@ fi
 
 # We need the cffs tools as well
 if [ ! -f lambda/cffsTools ]; then
-    if [ ! -d ../cffs/build ]; then
+    if [ ! -d $CFFS_SRC/build ]; then
         echo "Please build cffs first"
         exit 1
     fi
-    cp -r ../cffs/build lambda/cffsTools
+    cp -r $CFFS_SRC/build lambda/cffsTools
 fi
 
 echo "Done! PySat example is ready to use"
